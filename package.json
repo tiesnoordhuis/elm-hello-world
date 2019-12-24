@@ -1,0 +1,25 @@
+{
+    "name": "elm-hello-world",
+    "version": "1.0.0",
+    "description": "hello world",
+    "main": "src/Main.elm",
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/tiesnoordhuis/elm-hello-world.git"
+    },
+    "author": "Ties",
+    "license": "ISC",
+    "bugs": {
+        "url": "https://github.com/tiesnoordhuis/elm-hello-world/issues"
+    },
+    "homepage": "https://github.com/tiesnoordhuis/elm-hello-world#readme",
+    "prettier": {
+        "trailingComma": "es5",
+        "tabWidth": 4,
+        "semi": false,
+        "singleQuote": false
+    }
+}
