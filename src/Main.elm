@@ -12,6 +12,7 @@ import Dropdown
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
+import Basics
 
 
 
@@ -24,54 +25,101 @@ main =
 
 
 -- MODEL
+type TemperatureUnit
+    = Celcius
+    | Farenheid
+    | Kelvin
+
+toString : TemperatureUnit -> String
+toString temperatureUnit =
+    case temperatureUnit of
+        Celcius ->
+            "Celcius"
+        Farenheid ->
+            "Farenheid"
+        Kelvin ->
+            "Kelvin"
+
+toTemperatureUnit : String -> Maybe TemperatureUnit
+toTemperatureUnit temperatureUnit =
+    if temperatureUnit == "Celcius" then
+        Just Celcius
+    else if temperatureUnit == "Farenheid" then
+        Just Farenheid
+    else if temperatureUnit == "Kelvin" then
+        Just Kelvin
+    else
+        Nothing
 
 type Temperature
-    = Celius Float
-    | Farenheid Float
-    | Kelvin Float
+    = Temperature TemperatureUnit Float
 
 toCelcius : Temperature -> Float
 toCelcius temperature =
     case temperature of
-        Celius tempInCelcius ->
-            tempInCelcius
-        Farenheid tempInFarenheid ->
-            (tempInFarenheid - 32) / 1.8
-        Kelvin tempInKelvin ->
-            tempInKelvin + 273.15
+        Temperature temperatureUnit temperatureValue ->
+            case temperatureUnit of
+                Celcius ->
+                    temperatureValue
+                Farenheid ->
+                    (temperatureValue - 32) / 1.8
+                Kelvin ->
+                    temperatureValue + 273.15
 
 toFarenheid : Temperature -> Float
 toFarenheid temperature =
     case temperature of
-        Celius tempInCelcius ->
-            tempInCelcius * 1.8 + 32
-        Farenheid tempInFarenheid ->
-            tempInFarenheid
-        Kelvin tempInKelvin ->
-            (tempInKelvin + 273.15) * 1.8 + 32
+        Temperature temperatureUnit temperatureValue ->
+            case temperatureUnit of
+                Celcius ->
+                    temperatureValue * 1.8 + 32
+                Farenheid ->
+                    temperatureValue
+                Kelvin ->
+                    (temperatureValue + 273.15) * 1.8 + 32
 
 toKelvin : Temperature -> Float
 toKelvin temperature =
     case temperature of
-        Celius tempInCelcius ->
-            tempInCelcius - 273.15
-        Farenheid tempInFarenheid ->
-            ((tempInFarenheid - 32) / 1.8) - 273.15
-        Kelvin tempInKelvin ->
-            tempInKelvin
+        Temperature temperatureUnit temperatureValue ->
+            case temperatureUnit of
+                Celcius ->
+                    temperatureValue + 273.15
+                Farenheid ->
+                    ((temperatureValue - 32) / 1.8) + 273.15
+                Kelvin ->
+                    temperatureValue
+
+dropdownOptions : Dropdown.Options Msg
+dropdownOptions = 
+    let
+        defaultOptions =
+            Dropdown.defaultOptions TemperatureUnitUpdate
+    in
+    { 
+        defaultOptions
+            | items =
+                [ { value = toString Celcius, text = toString Celcius, enabled = True }
+                , { value = toString Farenheid, text = toString Farenheid, enabled = True }
+                , { value = toString Kelvin, text = toString Kelvin, enabled = True }
+                ]
+            , emptyItem = Nothing
+    }
+    
 
 type alias Model = 
     { username : String
     , password : String
     , passwordAgain : String
     , temperature : Temperature
+    , temperatureUnit: TemperatureUnit
     , validTemperature: Bool
     }
 
 
 init : Model
 init =
-    { username = "", password = "", passwordAgain = "" , temperature = Celius 25, validTemperature = True }
+    { username = "", password = "", passwordAgain = "" , temperature = Temperature Celcius 25, temperatureUnit = Celcius, validTemperature = True }
 
 
 -- UPDATE
@@ -82,8 +130,8 @@ type Msg
     | Password String
     | PasswordAgain String
     | TemperatureUpdate String
+    | TemperatureUnitUpdate (Maybe String)
     
-
 
 update : Msg -> Model -> Model
 update msg model =
@@ -97,14 +145,24 @@ update msg model =
         PasswordAgain password ->
             { model | passwordAgain = password }
 
-        TemperatureUpdate temperatureInput ->
-            (case String.toFloat temperatureInput of
+        TemperatureUpdate temperatureInputed ->
+            (case String.toFloat temperatureInputed of
                 Just temperature -> 
-                    { model | temperature = Celius temperature, validTemperature = True }
+                    { model | temperature = Temperature model.temperatureUnit temperature, validTemperature = True }
 
                 Nothing ->
-                    { model | temperature = Celius 0, validTemperature = False  })
+                    { model | temperature = Temperature model.temperatureUnit 0, validTemperature = False  })
 
+        TemperatureUnitUpdate selectedValue ->
+            case selectedValue of
+                Nothing ->
+                    model
+                Just value ->
+                    case toTemperatureUnit value of
+                        Nothing ->
+                            model
+                        Just temperatureUnitSelected ->
+                            { model | temperatureUnit = temperatureUnitSelected}
 
 
 -- VIEW
@@ -113,11 +171,20 @@ update msg model =
 view : Model -> Html Msg
 view model =
     div []
-        [ viewInput "text" "Userame" model.username Username
+        [ viewInput "text" "Username" model.username Username
         , viewInput "password" "Password" model.password Password
         , viewInput "password" "Re-enter Password" model.passwordAgain PasswordAgain
         , viewValidation model
-        , input [ value (String.fromFloat (toCelcius model.temperature)), onInput TemperatureUpdate ] []
+        , p []
+            [ label []
+                [ text "Dropdown: "
+                , Dropdown.dropdown
+                    dropdownOptions
+                    []
+                    (Just (toString model.temperatureUnit))
+                ]
+            ]
+        , temperatureInput model.temperatureUnit model.temperature TemperatureUpdate
         , div [] [ text ("Celcius = " ++ String.fromFloat (toCelcius model.temperature))]
         , div [] [ text ("Farenheid = " ++ String.fromFloat (toFarenheid model.temperature))]
         , div [] [ text ("Kevin = " ++ String.fromFloat (toKelvin model.temperature))]
@@ -126,6 +193,20 @@ view model =
 viewInput : String -> String -> String -> (String -> msg) -> Html msg
 viewInput t p v toMsg =
     input [ type_ t, placeholder p, value v, onInput toMsg ] []
+
+temperatureUnitInput : TemperatureUnit -> (String -> msg) -> Html msg
+temperatureUnitInput temperatureUnit temperatureUnitUpdate =
+    input [ value (toString temperatureUnit), onInput temperatureUnitUpdate ] []
+
+temperatureInput : TemperatureUnit -> Temperature -> (String -> msg) -> Html msg
+temperatureInput temperatureUnit temperature temperatureUpdate = 
+    case temperatureUnit of
+        Celcius ->
+            input [ value (String.fromFloat (toCelcius temperature)), onInput temperatureUpdate] []
+        Farenheid ->
+            input [ value (String.fromFloat (toFarenheid temperature)), onInput temperatureUpdate] []
+        Kelvin ->
+            input [ value (String.fromFloat (toKelvin temperature)), onInput temperatureUpdate] []
 
 
 viewValidation : Model -> Html msg
