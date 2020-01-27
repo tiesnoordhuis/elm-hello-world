@@ -12,15 +12,19 @@ import Dropdown
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
-import Basics
-
+import Http
 
 
 -- MAIN
 
 
 main =
-    Browser.sandbox { init = init, update = update, view = view }
+    Browser.element
+        { init = init
+        , update = update
+        , subscriptions = subscriptions
+        , view = view
+        }
 
 
 
@@ -105,11 +109,31 @@ dropdownOptions =
                 ]
             , emptyItem = Nothing
     }
+
+ageIsValid : String -> Result String Int
+ageIsValid input =
+    case String.toInt input of
+        Nothing ->
+            Err "not a number!"
+    
+        Just age ->
+            if age < 0 then
+                Err "to young!"
+
+            else if age > 130 then
+                Err "to old!"
+
+            else
+                Ok age
+            
+    
     
 
 type alias Model = 
     { username : String
     , password : String
+    , age : Int
+    , errors : List String
     , passwordAgain : String
     , temperature : Temperature
     , temperatureUnit: TemperatureUnit
@@ -119,7 +143,7 @@ type alias Model =
 
 init : Model
 init =
-    { username = "", password = "", passwordAgain = "" , temperature = Temperature Celcius 25, temperatureUnit = Celcius, validTemperature = True }
+    { username = "", password = "", passwordAgain = "" , age = 0, errors = [], temperature = Temperature Celcius 25, temperatureUnit = Celcius, validTemperature = True }
 
 
 -- UPDATE
@@ -129,6 +153,7 @@ type Msg
     = Username String
     | Password String
     | PasswordAgain String
+    | Age String
     | TemperatureUpdate String
     | TemperatureUnitUpdate (Maybe String)
     
@@ -138,6 +163,14 @@ update msg model =
     case msg of
         Username username ->
             { model | username = username }
+
+        Age input ->
+            case ageIsValid input of
+                Err errMsg ->
+                    { model | errors = model.errors ++ [errMsg]}
+
+                Ok age ->
+                    { model | age = age }
 
         Password password ->
             { model | password = password }
@@ -174,6 +207,8 @@ view model =
         [ viewInput "text" "Username" model.username Username
         , viewInput "password" "Password" model.password Password
         , viewInput "password" "Re-enter Password" model.passwordAgain PasswordAgain
+        , viewInput "age" "45" (String.fromInt model.age) Age
+        , p [ ] [ text (String.concat model.errors) ]
         , viewValidation model
         , p []
             [ label []
