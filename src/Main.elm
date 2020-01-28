@@ -19,10 +19,9 @@ import Http
 
 
 main =
-    Browser.element
+    Browser.sandbox
         { init = init
         , update = update
-        , subscriptions = subscriptions
         , view = view
         }
 
