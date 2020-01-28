@@ -18,6 +18,7 @@
     "homepage": "https://github.com/tiesnoordhuis/elm-hello-world#readme",
     "prettier": {
         "trailingComma": "es5",
+        "useTabs": false,
         "tabWidth": 4,
         "semi": false,
         "singleQuote": false
